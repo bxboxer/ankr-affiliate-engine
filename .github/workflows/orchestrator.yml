@@ -1,0 +1,44 @@
+name: Orchestrator
+
+on:
+  # Weekly schedule — Monday at 6 AM UTC
+  schedule:
+    - cron: "0 6 * * 1"
+
+  # Manual trigger from GitHub Actions UI or dashboard API
+  workflow_dispatch:
+    inputs:
+      run_mode:
+        description: "Run mode: all, spawn, score, recon"
+        required: false
+        default: "all"
+
+jobs:
+  orchestrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run orchestrator
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_OWNER: bxboxer
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          GSC_SERVICE_ACCOUNT_B64: ${{ secrets.GSC_SERVICE_ACCOUNT_B64 }}
+          TEMPLATE_REPO: ankr-affiliate-template
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+        run: npx tsx orchestrator/orchestrator.ts --run=${{ github.event.inputs.run_mode || 'all' }}

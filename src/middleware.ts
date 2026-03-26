@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/logout"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -22,7 +22,12 @@ export function middleware(request: NextRequest) {
   // Check session cookie
   const session = request.cookies.get("ae_session");
   if (!session?.value) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const url = new URL("/login", request.url);
+    const res = NextResponse.redirect(url);
+    // Prevent Vercel edge from caching redirects
+    res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.headers.set("x-middleware-cache", "no-cache");
+    return res;
   }
 
   try {
@@ -30,13 +35,24 @@ export function middleware(request: NextRequest) {
       Buffer.from(session.value, "base64").toString("utf-8")
     );
     if (payload.authenticated !== true || payload.expires < Date.now()) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      const url = new URL("/login", request.url);
+      const res = NextResponse.redirect(url);
+      res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.headers.set("x-middleware-cache", "no-cache");
+      return res;
     }
   } catch {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const url = new URL("/login", request.url);
+    const res = NextResponse.redirect(url);
+    res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.headers.set("x-middleware-cache", "no-cache");
+    return res;
   }
 
-  return NextResponse.next();
+  // Authenticated — pass through with no-cache to ensure fresh auth checks
+  const res = NextResponse.next();
+  res.headers.set("x-middleware-cache", "no-cache");
+  return res;
 }
 
 export const config = {

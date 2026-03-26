@@ -52,13 +52,13 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-base-300 p-4">
-        <Link
+        <a
           href="/api/auth/logout"
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-error"
         >
           <RiLogoutBoxLine className="h-5 w-5" />
           Logout
-        </Link>
+        </a>
       </div>
     </aside>
   );

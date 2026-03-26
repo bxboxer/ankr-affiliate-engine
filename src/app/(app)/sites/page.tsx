@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { RiAddCircleLine, RiExternalLinkLine } from "react-icons/ri";

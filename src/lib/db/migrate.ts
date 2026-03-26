@@ -1,3 +1,6 @@
+import { config } from "dotenv";
+config();
+
 import { sql } from "kysely";
 import { db } from "./index";
 
@@ -177,6 +180,61 @@ async function migrate() {
     .ifNotExists()
     .on("niche_research")
     .column("site_id")
+    .execute();
+
+  // ── Content Jobs ────────────────────────────────────────────────────────
+  await db.schema
+    .createTable("content_jobs")
+    .ifNotExists()
+    .addColumn("id", "uuid", (col) =>
+      col.primaryKey().defaultTo(sql`gen_random_uuid()`)
+    )
+    .addColumn("site_id", "uuid", (col) =>
+      col.notNull().references("sites.id").onDelete("cascade")
+    )
+    .addColumn("job_type", "varchar(50)", (col) => col.notNull())
+    .addColumn("title", "varchar(500)", (col) => col.notNull())
+    .addColumn("slug", "varchar(500)", (col) => col.notNull())
+    .addColumn("target_keywords", "jsonb")
+    .addColumn("source", "varchar(50)", (col) => col.notNull())
+    .addColumn("source_id", "uuid")
+    .addColumn("brief", "text")
+    .addColumn("generated_content", "text")
+    .addColumn("word_count", "integer")
+    .addColumn("status", "varchar(50)", (col) =>
+      col.notNull().defaultTo("queued")
+    )
+    .addColumn("error_message", "text")
+    .addColumn("commit_sha", "varchar(255)")
+    .addColumn("published_url", "varchar(500)")
+    .addColumn("created_at", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`now()`)
+    )
+    .addColumn("updated_at", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`now()`)
+    )
+    .addColumn("published_at", "timestamptz")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_content_jobs_site_id")
+    .ifNotExists()
+    .on("content_jobs")
+    .column("site_id")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_content_jobs_status")
+    .ifNotExists()
+    .on("content_jobs")
+    .column("status")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_content_jobs_source")
+    .ifNotExists()
+    .on("content_jobs")
+    .column("source")
     .execute();
 
   console.log("Migrations complete.");

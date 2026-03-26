@@ -7,6 +7,7 @@ import {
   RiGlobalLine,
   RiAddCircleLine,
   RiLightbulbLine,
+  RiFileTextLine,
   RiSpyLine,
   RiSettings3Line,
   RiLogoutBoxLine,
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { href: "/sites", label: "Sites", icon: RiGlobalLine },
   { href: "/spawn", label: "Spawn Site", icon: RiAddCircleLine },
   { href: "/research", label: "Research", icon: RiLightbulbLine },
+  { href: "/content", label: "Content", icon: RiFileTextLine },
   { href: "/recon", label: "Recon Intel", icon: RiSpyLine },
   { href: "/settings", label: "Settings", icon: RiSettings3Line },
 ];

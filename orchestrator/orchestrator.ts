@@ -10,6 +10,8 @@
  *   npx tsx orchestrator/orchestrator.ts --run=score
  *   npx tsx orchestrator/orchestrator.ts --run=research
  *   npx tsx orchestrator/orchestrator.ts --run=recon
+ *   npx tsx orchestrator/orchestrator.ts --run=write
+ *   npx tsx orchestrator/orchestrator.ts --run=pipeline
  */
 
 import { config } from "dotenv";
@@ -19,6 +21,8 @@ import { SiteSpawner } from "./agents/site-spawner";
 import { ContentScorer } from "./agents/content-scorer";
 import { NicheResearchAgent } from "./agents/niche-research";
 import { ReconAgent } from "./agents/recon-agent";
+import { ContentWriter } from "./agents/content-writer";
+import { Publisher } from "./lib/publisher";
 import { log } from "./lib/utils";
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -33,6 +37,7 @@ const CONFIG = {
   appBaseUrl: process.env.APP_BASE_URL ?? "http://localhost:3000",
   scoringBatchSize: 5,
   maxBriefsPerRun: 15,
+  maxJobsPerRun: 5,
   reconSources: [
     "https://detailed.com",
     "https://ahrefs.com/blog",
@@ -85,6 +90,8 @@ async function main() {
   const results = {
     spawned: [] as Array<{ name: string; success: boolean; error?: string }>,
     scored: [] as Array<{ siteId: string; siteName: string; totalPages: number }>,
+    written: [] as Array<{ jobId: string; success: boolean; wordCount: number }>,
+    published: [] as Array<{ jobId: string; success: boolean; url?: string }>,
     research: null as unknown,
     recon: null as unknown,
     errors: [] as string[],
@@ -177,6 +184,102 @@ async function main() {
       const recon = new ReconAgent(CONFIG);
       results.recon = await recon.run();
     }
+
+    // ── WRITE ──────────────────────────────────────────────────────────────
+    if (runFlag === "all" || runFlag === "write" || runFlag === "pipeline") {
+      log.section("Content Writer");
+      const writer = new ContentWriter(CONFIG);
+
+      // Fetch queued content jobs from API
+      let jobs: Array<{
+        id: string;
+        site_id: string;
+        job_type: "new_article" | "update" | "rewrite_meta" | "expand";
+        title: string;
+        slug: string;
+        target_keywords: string[] | null;
+        source: "research" | "scoring" | "manual";
+        brief: string | null;
+      }> = [];
+
+      try {
+        const res = await fetch(
+          `${CONFIG.appBaseUrl}/api/content?status=queued`
+        );
+        if (res.ok) {
+          jobs = await res.json();
+        }
+      } catch {
+        log.warn("Could not fetch content jobs");
+      }
+
+      if (jobs.length > 0) {
+        // Need full site data with affiliate info
+        let fullSites: Array<{
+          id: string;
+          name: string;
+          domain: string;
+          niche: string;
+          repo_name: string;
+          affiliate_tag: string | null;
+          affiliate_program: string;
+          audience_description: string | null;
+          status: string;
+        }> = [];
+
+        try {
+          const res = await fetch(`${CONFIG.appBaseUrl}/api/sites`);
+          if (res.ok) fullSites = await res.json();
+        } catch {
+          // Use existing sites array as fallback
+        }
+
+        const siteRefs = (fullSites.length > 0 ? fullSites : sites).map(
+          (s) => ({
+            ...s,
+            affiliate_tag: (s as Record<string, unknown>).affiliate_tag as string | null ?? null,
+            affiliate_program: (s as Record<string, unknown>).affiliate_program as string ?? "amazon",
+            audience_description: (s as Record<string, unknown>).audience_description as string | null ?? null,
+          })
+        );
+
+        const genResults = await writer.run(jobs, siteRefs);
+        for (const r of genResults) {
+          results.written.push({
+            jobId: r.jobId,
+            success: r.success,
+            wordCount: r.wordCount,
+          });
+        }
+
+        // Auto-publish successfully generated articles
+        const publisher = new Publisher(CONFIG);
+        const toPublish = genResults.filter((r) => r.success);
+
+        for (const gen of toPublish) {
+          const job = jobs.find((j) => j.id === gen.jobId);
+          const site = siteRefs.find((s) => s.id === job?.site_id);
+          if (!job || !site) continue;
+
+          log.info(`Publishing: "${job.title}" to ${site.repo_name}`);
+          const pubResult = await publisher.publishArticle(
+            site.repo_name,
+            site.domain,
+            job.slug,
+            job.title,
+            gen.content
+          );
+          await publisher.updateJobAfterPublish(gen.jobId, pubResult);
+          results.published.push({
+            jobId: gen.jobId,
+            success: pubResult.success,
+            url: pubResult.publishedUrl,
+          });
+        }
+      } else {
+        log.info("No content jobs in queue");
+      }
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     results.errors.push(msg);
@@ -187,6 +290,8 @@ async function main() {
   log.header("Complete");
   log.info(`Spawned: ${results.spawned.filter((r) => r.success).length}`);
   log.info(`Scored: ${results.scored.length}`);
+  log.info(`Written: ${results.written.filter((r) => r.success).length} (${results.written.reduce((sum, r) => sum + r.wordCount, 0)} words)`);
+  log.info(`Published: ${results.published.filter((r) => r.success).length}`);
   log.info(`Research: ${results.research ? "done" : "skipped"}`);
   log.info(`Recon: ${results.recon ? "done" : "skipped"}`);
   if (results.errors.length > 0) {

@@ -43,6 +43,13 @@ export class GitHubClient {
     return this.request(`/repos/${this.owner}/${repoName}`);
   }
 
+  async getFileContent(repoName: string, path: string): Promise<string> {
+    const data = await this.request(
+      `/repos/${this.owner}/${repoName}/contents/${path}`
+    );
+    return Buffer.from(data.content, "base64").toString("utf-8");
+  }
+
   async createOrUpdateFile(repoName: string, path: string, content: string, message: string) {
     const encoded = Buffer.from(content).toString("base64");
 

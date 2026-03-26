@@ -105,6 +105,33 @@ export type NicheResearch = Selectable<NicheResearchTable>;
 export type NewNicheResearch = Insertable<NicheResearchTable>;
 export type NicheResearchUpdate = Updateable<NicheResearchTable>;
 
+// ── Content Jobs ─────────────────────────────────────────────────────────────
+
+export interface ContentJobsTable {
+  id: Generated<string>;
+  site_id: string;
+  job_type: "new_article" | "update" | "rewrite_meta" | "expand";
+  title: string;
+  slug: string;
+  target_keywords: string[] | null; // jsonb
+  source: "research" | "scoring" | "manual";
+  source_id: string | null; // FK to niche_research or scoring_reports
+  brief: string | null;
+  generated_content: string | null;
+  word_count: number | null;
+  status: "queued" | "generating" | "review" | "published" | "failed";
+  error_message: string | null;
+  commit_sha: string | null;
+  published_url: string | null;
+  created_at: ColumnType<Date, string | undefined, string>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+  published_at: ColumnType<Date, string | undefined, string | null>;
+}
+
+export type ContentJob = Selectable<ContentJobsTable>;
+export type NewContentJob = Insertable<ContentJobsTable>;
+export type ContentJobUpdate = Updateable<ContentJobsTable>;
+
 // ── Database ─────────────────────────────────────────────────────────────────
 
 export interface Database {
@@ -113,4 +140,5 @@ export interface Database {
   recon_digests: ReconDigestsTable;
   spawn_queue: SpawnQueueTable;
   niche_research: NicheResearchTable;
+  content_jobs: ContentJobsTable;
 }

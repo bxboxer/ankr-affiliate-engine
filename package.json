@@ -13,6 +13,8 @@
     "orchestrator:score": "tsx orchestrator/orchestrator.ts --run=score",
     "orchestrator:research": "tsx orchestrator/orchestrator.ts --run=research",
     "orchestrator:recon": "tsx orchestrator/orchestrator.ts --run=recon",
+    "orchestrator:write": "tsx orchestrator/orchestrator.ts --run=write",
+    "orchestrator:pipeline": "tsx orchestrator/orchestrator.ts --run=pipeline",
     "db:migrate": "tsx src/lib/db/migrate.ts"
   },
   "dependencies": {

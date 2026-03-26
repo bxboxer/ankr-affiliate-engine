@@ -1,7 +1,7 @@
 name: Orchestrator
 
 on:
-  # Weekly schedule — Monday at 6 AM UTC
+  # Weekly full run — Monday at 6 AM UTC
   schedule:
     - cron: "0 6 * * 1"
 
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       run_mode:
-        description: "Run mode: all, spawn, score, research, recon"
+        description: "Run mode: all, spawn, score, research, recon, write, pipeline"
         required: false
         default: "all"
 

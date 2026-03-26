@@ -9,6 +9,7 @@ import {
   RiSpyLine,
   RiLightbulbLine,
   RiAddCircleLine,
+  RiFileTextLine,
 } from "react-icons/ri";
 
 async function getStats() {
@@ -51,6 +52,15 @@ async function getStats() {
       .select(sql<number>`count(*)`.as("count"))
       .executeTakeFirst();
 
+    const contentStats = await db
+      .selectFrom("content_jobs")
+      .select([
+        sql<number>`count(*) filter (where status = 'queued')`.as("queued"),
+        sql<number>`count(*) filter (where status = 'published')`.as("published"),
+        sql<number>`coalesce(sum(word_count) filter (where status = 'published'), 0)`.as("totalWords"),
+      ])
+      .executeTakeFirst();
+
     return {
       total: Number(sites?.total ?? 0),
       active: Number(sites?.active ?? 0),
@@ -59,6 +69,9 @@ async function getStats() {
       recentReports,
       queuedSpawns: Number(queueCount?.count ?? 0),
       researchCount: Number(researchCount?.count ?? 0),
+      contentQueued: Number(contentStats?.queued ?? 0),
+      contentPublished: Number(contentStats?.published ?? 0),
+      contentWords: Number(contentStats?.totalWords ?? 0),
     };
   } catch {
     // DB not connected yet — return empty state
@@ -70,6 +83,9 @@ async function getStats() {
       recentReports: [],
       queuedSpawns: 0,
       researchCount: 0,
+      contentQueued: 0,
+      contentPublished: 0,
+      contentWords: 0,
     };
   }
 }
@@ -167,6 +183,18 @@ export default async function DashboardPage() {
                 value={stats.researchCount}
                 href="/research"
                 icon={<RiLightbulbLine className="h-4 w-4" />}
+              />
+              <StatusRow
+                label="Content queued"
+                value={stats.contentQueued}
+                href="/content?status=queued"
+                icon={<RiFileTextLine className="h-4 w-4" />}
+              />
+              <StatusRow
+                label="Articles published"
+                value={stats.contentPublished}
+                href="/content?status=published"
+                icon={<RiFileTextLine className="h-4 w-4" />}
               />
               <StatusRow
                 label="Recon digests"

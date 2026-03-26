@@ -13,7 +13,7 @@ function getDb(): Kysely<Database> {
     }
     _db = new Kysely<Database>({
       dialect: new NeonDialect({
-        neon: neon(connectionString),
+        neon: neon(connectionString, { fullResults: false }),
       }),
     });
   }

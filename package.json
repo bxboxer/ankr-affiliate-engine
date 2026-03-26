@@ -24,7 +24,6 @@
     "google-auth-library": "^10.6.2",
     "googleapis": "^171.4.0",
     "kysely": "^0.28.14",
-    "kysely-neon": "^2.0.2",
     "next": "^15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

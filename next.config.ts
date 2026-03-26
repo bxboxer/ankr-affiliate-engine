@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "2mb",
     },
   },
-  serverExternalPackages: ["@neondatabase/serverless", "kysely-neon"],
+  serverExternalPackages: ["@neondatabase/serverless"],
 };
 
 export default nextConfig;

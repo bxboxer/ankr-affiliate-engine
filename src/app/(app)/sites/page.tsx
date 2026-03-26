@@ -47,7 +47,7 @@ export default async function SitesPage() {
                 Spawn a Site
               </Link>
               <Link href="/sites/add" className="btn btn-ghost btn-sm">
-                Add Existing
+                Add Site
               </Link>
             </div>
           </div>

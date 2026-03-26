@@ -2,33 +2,93 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { RiSearchLine, RiCheckLine, RiEditLine } from "react-icons/ri";
 
-export default function AddExistingSitePage() {
+interface DetectedSite {
+  domain: string;
+  name: string;
+  niche: string;
+  repo_name: string;
+  affiliate_program: string;
+  affiliate_tag: string;
+  description: string;
+  detected: {
+    title: string;
+    description: string;
+    ogTitle: string;
+    ogDescription: string;
+    htmlLength: number;
+    fetchError: string | null;
+  };
+}
+
+export default function AddSitePage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [domain, setDomain] = useState("");
+  const [detecting, setDetecting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [detected, setDetected] = useState<DetectedSite | null>(null);
+  const [editing, setEditing] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  // Editable overrides
+  const [name, setName] = useState("");
+  const [niche, setNiche] = useState("");
+  const [repoName, setRepoName] = useState("");
+  const [affiliateTag, setAffiliateTag] = useState("");
+  const [affiliateProgram, setAffiliateProgram] = useState("amazon");
+
+  async function handleDetect(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    if (!domain.trim()) return;
 
-    const form = new FormData(e.currentTarget);
-    const data = {
-      name: form.get("name"),
-      domain: form.get("domain"),
-      niche: form.get("niche"),
-      repo_name: form.get("repo_name"),
-      affiliate_program: form.get("affiliate_program"),
-      affiliate_tag: form.get("affiliate_tag"),
-      vercel_project_id: form.get("vercel_project_id") || null,
-      status: "active",
-    };
+    setDetecting(true);
+    setError("");
+    setDetected(null);
+
+    try {
+      const res = await fetch("/api/sites/detect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: domain.trim() }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.error ?? "Detection failed");
+        setDetecting(false);
+        return;
+      }
+
+      const data: DetectedSite = await res.json();
+      setDetected(data);
+      setName(data.name);
+      setNiche(data.niche);
+      setRepoName(data.repo_name);
+      setAffiliateTag(data.affiliate_tag);
+      setAffiliateProgram(data.affiliate_program);
+    } catch {
+      setError("Failed to detect site info");
+    }
+    setDetecting(false);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError("");
 
     const res = await fetch("/api/sites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        name,
+        domain: detected!.domain,
+        niche,
+        repo_name: repoName,
+        affiliate_program: affiliateProgram,
+        affiliate_tag: affiliateTag || null,
+        status: "active",
+      }),
     });
 
     if (res.ok) {
@@ -36,139 +96,192 @@ export default function AddExistingSitePage() {
     } else {
       const err = await res.json();
       setError(err.error ?? "Failed to add site");
-      setLoading(false);
+      setSaving(false);
     }
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-3xl font-bold">Add Existing Site</h1>
+      <h1 className="text-3xl font-bold">Add Site</h1>
       <p className="text-base-content/60">
-        Register an already-deployed site into your network for tracking and
-        scoring.
+        Enter a domain and we&apos;ll auto-detect everything else.
       </p>
 
-      <form onSubmit={handleSubmit} className="card bg-base-100">
-        <div className="card-body space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Site Name</span>
-              </label>
-              <input
-                name="name"
-                type="text"
-                placeholder="Prime Gaming Finds"
-                className="input input-bordered"
-                required
-              />
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Domain</span>
-              </label>
-              <input
-                name="domain"
-                type="text"
-                placeholder="primegamingfinds.com"
-                className="input input-bordered"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">Niche</span>
-            </label>
+      {/* Step 1: Domain input */}
+      <form onSubmit={handleDetect} className="card bg-base-100">
+        <div className="card-body">
+          <div className="flex gap-3">
             <input
-              name="niche"
               type="text"
-              placeholder="Gaming Peripherals & Equipment"
-              className="input input-bordered"
-              required
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              placeholder="bestgamingbuys.com"
+              className="input input-bordered flex-1"
+              disabled={detecting}
+              autoFocus
             />
+            <button
+              type="submit"
+              className="btn btn-primary gap-2"
+              disabled={detecting || !domain.trim()}
+            >
+              {detecting ? (
+                <span className="loading loading-spinner loading-sm" />
+              ) : (
+                <RiSearchLine className="h-4 w-4" />
+              )}
+              Detect
+            </button>
           </div>
-
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">GitHub Repo Name</span>
-            </label>
-            <input
-              name="repo_name"
-              type="text"
-              placeholder="prime-gaming-finds"
-              className="input input-bordered"
-              required
-            />
-            <label className="label">
-              <span className="label-text-alt text-base-content/50">
-                Under bxboxer GitHub account
-              </span>
-            </label>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">
-                  Affiliate Program
-                </span>
-              </label>
-              <select
-                name="affiliate_program"
-                className="select select-bordered"
-                defaultValue="amazon"
-              >
-                <option value="amazon">Amazon Associates</option>
-                <option value="impact">Impact</option>
-                <option value="shareasale">ShareASale</option>
-                <option value="partnerstack">PartnerStack</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Affiliate Tag</span>
-              </label>
-              <input
-                name="affiliate_tag"
-                type="text"
-                placeholder="bestgamingb04-20"
-                className="input input-bordered"
-              />
-            </div>
-          </div>
-
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">
-                Vercel Project ID (optional)
-              </span>
-            </label>
-            <input
-              name="vercel_project_id"
-              type="text"
-              placeholder="prj_xxxxxxxxxxxx"
-              className="input input-bordered"
-            />
-          </div>
-
-          {error && <div className="alert alert-error text-sm">{error}</div>}
-
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={loading}
-          >
-            {loading ? (
-              <span className="loading loading-spinner loading-sm" />
-            ) : (
-              "Add Site"
-            )}
-          </button>
         </div>
       </form>
+
+      {error && <div className="alert alert-error text-sm">{error}</div>}
+
+      {/* Step 2: Review detected info */}
+      {detected && (
+        <div className="card bg-base-100">
+          <div className="card-body space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="card-title text-lg">Detected Configuration</h2>
+              <button
+                className="btn btn-ghost btn-xs gap-1"
+                onClick={() => setEditing(!editing)}
+              >
+                <RiEditLine className="h-3.5 w-3.5" />
+                {editing ? "Done" : "Edit"}
+              </button>
+            </div>
+
+            {detected.detected.fetchError && (
+              <div className="alert alert-warning text-xs">
+                Couldn&apos;t reach the site — using defaults from the domain
+                name. You can edit below.
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <DetectedField
+                label="Site Name"
+                value={name}
+                editing={editing}
+                onChange={setName}
+              />
+              <DetectedField
+                label="Domain"
+                value={detected.domain}
+                editing={false}
+              />
+              <DetectedField
+                label="Niche"
+                value={niche}
+                editing={editing}
+                onChange={setNiche}
+              />
+              <DetectedField
+                label="Repo Name"
+                value={repoName}
+                editing={editing}
+                onChange={setRepoName}
+                hint="Under bxboxer GitHub account"
+              />
+              {editing ? (
+                <div className="form-control">
+                  <label className="label py-1">
+                    <span className="label-text text-xs font-medium text-base-content/60">
+                      Affiliate Program
+                    </span>
+                  </label>
+                  <select
+                    className="select select-bordered select-sm"
+                    value={affiliateProgram}
+                    onChange={(e) => setAffiliateProgram(e.target.value)}
+                  >
+                    <option value="amazon">Amazon Associates</option>
+                    <option value="impact">Impact</option>
+                    <option value="shareasale">ShareASale</option>
+                    <option value="partnerstack">PartnerStack</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              ) : (
+                <DetectedField
+                  label="Affiliate Program"
+                  value={affiliateProgram}
+                  editing={false}
+                />
+              )}
+              <DetectedField
+                label="Affiliate Tag"
+                value={affiliateTag}
+                editing={editing}
+                onChange={setAffiliateTag}
+                placeholder="auto-detected or enter manually"
+              />
+            </div>
+
+            {detected.description && (
+              <div className="rounded-lg bg-base-200 p-3">
+                <p className="text-xs font-medium text-base-content/50 mb-1">
+                  Site Description
+                </p>
+                <p className="text-sm">{detected.description}</p>
+              </div>
+            )}
+
+            <button
+              className="btn btn-primary w-full gap-2"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <span className="loading loading-spinner loading-sm" />
+              ) : (
+                <RiCheckLine className="h-4 w-4" />
+              )}
+              Add to Network
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetectedField({
+  label,
+  value,
+  editing,
+  onChange,
+  hint,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  editing: boolean;
+  onChange?: (v: string) => void;
+  hint?: string;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="label py-1">
+        <span className="label-text text-xs font-medium text-base-content/60">
+          {label}
+        </span>
+      </label>
+      {editing && onChange ? (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="input input-bordered input-sm w-full"
+          placeholder={placeholder}
+        />
+      ) : (
+        <p className="px-1 text-sm font-medium">{value || "—"}</p>
+      )}
+      {hint && <p className="text-xs text-base-content/40 mt-0.5">{hint}</p>}
     </div>
   );
 }

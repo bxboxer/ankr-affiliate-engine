@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const run = (body as { run?: string }).run ?? "all";
+    const contentType = request.headers.get("content-type") ?? "";
+    let run = "all";
+
+    if (contentType.includes("application/json")) {
+      const body = await request.json().catch(() => ({}));
+      run = (body as { run?: string }).run ?? "all";
+    } else {
+      const formData = await request.formData().catch(() => null);
+      if (formData) {
+        run = (formData.get("run") as string) ?? "all";
+      }
+    }
 
     // Trigger GitHub Actions workflow dispatch
     const githubToken = process.env.GITHUB_TOKEN;

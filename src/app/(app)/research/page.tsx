@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { Suspense } from "react";
 import { db } from "@/lib/db";
 import {
   RiSearchLine,
@@ -10,6 +11,8 @@ import {
   RiChatSmileLine,
   RiShoppingCartLine,
 } from "react-icons/ri";
+import { triggerResearch } from "./actions";
+import { TriggerToast } from "@/components/TriggerToast";
 
 async function getResearchData() {
   try {
@@ -73,6 +76,9 @@ export default async function ResearchPage() {
 
   return (
     <div className="space-y-6">
+      <Suspense>
+        <TriggerToast />
+      </Suspense>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Niche Research</h1>
@@ -81,8 +87,7 @@ export default async function ResearchPage() {
             Reddit, and Google Trends.
           </p>
         </div>
-        <form action="/api/orchestrator/trigger" method="POST">
-          <input type="hidden" name="run" value="research" />
+        <form action={triggerResearch}>
           <button type="submit" className="btn btn-outline btn-sm gap-2">
             <RiSearchLine className="h-4 w-4" />
             Run Research

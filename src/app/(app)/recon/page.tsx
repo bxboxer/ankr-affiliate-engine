@@ -1,6 +1,9 @@
 export const dynamic = "force-dynamic";
 
+import { Suspense } from "react";
 import { db } from "@/lib/db";
+import { triggerRecon } from "./actions";
+import { TriggerToast } from "@/components/TriggerToast";
 
 async function getDigests() {
   try {
@@ -20,6 +23,9 @@ export default async function ReconPage() {
 
   return (
     <div className="space-y-6">
+      <Suspense>
+        <TriggerToast />
+      </Suspense>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Recon Intelligence</h1>
@@ -28,8 +34,7 @@ export default async function ReconPage() {
             and industry signal tracking.
           </p>
         </div>
-        <form action="/api/orchestrator/trigger" method="POST">
-          <input type="hidden" name="run" value="recon" />
+        <form action={triggerRecon}>
           <button type="submit" className="btn btn-outline btn-sm">
             Run Recon Now
           </button>

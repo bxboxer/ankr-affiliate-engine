@@ -43,6 +43,8 @@ export default function SettingsPage() {
               { key: "score", label: "Score Only", desc: "Content scoring" },
               { key: "research", label: "Research Only", desc: "Niche research" },
               { key: "recon", label: "Recon Only", desc: "Intel gathering" },
+              { key: "write", label: "Write Content", desc: "Generate queued articles" },
+              { key: "pipeline", label: "Full Pipeline", desc: "Research → Score → Write" },
             ].map((action) => (
               <button
                 key={action.key}

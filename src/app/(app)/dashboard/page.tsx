@@ -5,6 +5,7 @@ import {
   RiGlobalLine,
   RiArrowRightUpLine,
   RiSpyLine,
+  RiLightbulbLine,
   RiAddCircleLine,
 } from "react-icons/ri";
 
@@ -42,6 +43,12 @@ async function getStats() {
       .select(sql<number>`count(*)`.as("count"))
       .executeTakeFirst();
 
+    const researchCount = await db
+      .selectFrom("niche_research")
+      .where("status", "=", "complete")
+      .select(sql<number>`count(*)`.as("count"))
+      .executeTakeFirst();
+
     return {
       total: Number(sites?.total ?? 0),
       active: Number(sites?.active ?? 0),
@@ -49,6 +56,7 @@ async function getStats() {
       totalRevenue: Number(sites?.totalRevenue ?? 0),
       recentReports,
       queuedSpawns: Number(queueCount?.count ?? 0),
+      researchCount: Number(researchCount?.count ?? 0),
     };
   } catch {
     // DB not connected yet — return empty state
@@ -59,6 +67,7 @@ async function getStats() {
       totalRevenue: 0,
       recentReports: [],
       queuedSpawns: 0,
+      researchCount: 0,
     };
   }
 }
@@ -150,6 +159,12 @@ export default async function DashboardPage() {
                 label="Sites in spawn queue"
                 value={stats.queuedSpawns}
                 href="/spawn"
+              />
+              <StatusRow
+                label="Niche opportunities"
+                value={stats.researchCount}
+                href="/research"
+                icon={<RiLightbulbLine className="h-4 w-4" />}
               />
               <StatusRow
                 label="Recon digests"

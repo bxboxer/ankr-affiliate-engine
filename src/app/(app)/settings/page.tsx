@@ -38,9 +38,10 @@ export default function SettingsPage() {
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             {[
-              { key: "all", label: "Full Run", desc: "Spawn + Score + Recon" },
+              { key: "all", label: "Full Run", desc: "Spawn + Score + Research + Recon" },
               { key: "spawn", label: "Spawn Only", desc: "Process queue" },
               { key: "score", label: "Score Only", desc: "Content scoring" },
+              { key: "research", label: "Research Only", desc: "Niche research" },
               { key: "recon", label: "Recon Only", desc: "Intel gathering" },
             ].map((action) => (
               <button
@@ -75,6 +76,8 @@ export default function SettingsPage() {
             <EnvCheck label="Vercel Token" envKey="VERCEL_TOKEN" />
             <EnvCheck label="Anthropic API Key" envKey="ANTHROPIC_API_KEY" />
             <EnvCheck label="Database" envKey="POSTGRES_URL" />
+            <EnvCheck label="Google Ads API" envKey="GOOGLE_ADS_DEVELOPER_TOKEN" />
+            <EnvCheck label="Google GSC OAuth" envKey="GOOGLE_GSC_CLIENT_ID" />
             <EnvCheck label="GSC Service Account" envKey="GSC_SERVICE_ACCOUNT_B64" />
           </div>
         </div>

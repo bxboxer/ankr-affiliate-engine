@@ -2,12 +2,13 @@
  * ANKR Affiliate Engine — Orchestrator
  *
  * Central brain that coordinates site spawning, content scoring,
- * recon intelligence, and dashboard sync.
+ * niche research, recon intelligence, and dashboard sync.
  *
  * Usage:
  *   npx tsx orchestrator/orchestrator.ts --run=all
  *   npx tsx orchestrator/orchestrator.ts --run=spawn
  *   npx tsx orchestrator/orchestrator.ts --run=score
+ *   npx tsx orchestrator/orchestrator.ts --run=research
  *   npx tsx orchestrator/orchestrator.ts --run=recon
  */
 
@@ -16,6 +17,7 @@ config();
 
 import { SiteSpawner } from "./agents/site-spawner";
 import { ContentScorer } from "./agents/content-scorer";
+import { NicheResearchAgent } from "./agents/niche-research";
 import { ReconAgent } from "./agents/recon-agent";
 import { log } from "./lib/utils";
 
@@ -37,6 +39,16 @@ const CONFIG = {
     "https://www.seroundtable.com",
     "https://www.reddit.com/r/juststart/.rss",
     "https://www.reddit.com/r/SEO/.rss",
+  ],
+  seedNiches: [
+    "gaming peripherals",
+    "home office equipment",
+    "smart home devices",
+    "fitness equipment",
+    "outdoor gear",
+    "pet supplies",
+    "kitchen gadgets",
+    "baby products",
   ],
 };
 
@@ -73,6 +85,7 @@ async function main() {
   const results = {
     spawned: [] as Array<{ name: string; success: boolean; error?: string }>,
     scored: [] as Array<{ siteId: string; siteName: string; totalPages: number }>,
+    research: null as unknown,
     recon: null as unknown,
     errors: [] as string[],
   };
@@ -150,6 +163,14 @@ async function main() {
       }
     }
 
+    // ── RESEARCH ──────────────────────────────────────────────────────────
+    if (runFlag === "all" || runFlag === "research") {
+      log.section("Niche Research Agent");
+      const researcher = new NicheResearchAgent(CONFIG);
+      const opportunities = await researcher.run();
+      results.research = opportunities;
+    }
+
     // ── RECON ─────────────────────────────────────────────────────────────
     if (runFlag === "all" || runFlag === "recon") {
       log.section("Recon Agent");
@@ -166,6 +187,7 @@ async function main() {
   log.header("Complete");
   log.info(`Spawned: ${results.spawned.filter((r) => r.success).length}`);
   log.info(`Scored: ${results.scored.length}`);
+  log.info(`Research: ${results.research ? "done" : "skipped"}`);
   log.info(`Recon: ${results.recon ? "done" : "skipped"}`);
   if (results.errors.length > 0) {
     log.error(`Errors: ${results.errors.join(", ")}`);

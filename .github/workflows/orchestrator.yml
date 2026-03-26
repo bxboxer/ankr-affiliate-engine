@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       run_mode:
-        description: "Run mode: all, spawn, score, recon"
+        description: "Run mode: all, spawn, score, research, recon"
         required: false
         default: "all"
 
@@ -39,6 +39,14 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           GSC_SERVICE_ACCOUNT_B64: ${{ secrets.GSC_SERVICE_ACCOUNT_B64 }}
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_MCC_ID: ${{ secrets.GOOGLE_ADS_MCC_ID }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_GSC_CLIENT_ID: ${{ secrets.GOOGLE_GSC_CLIENT_ID }}
+          GOOGLE_GSC_CLIENT_SECRET: ${{ secrets.GOOGLE_GSC_CLIENT_SECRET }}
+          GOOGLE_GSC_REFRESH_TOKEN: ${{ secrets.GOOGLE_GSC_REFRESH_TOKEN }}
           TEMPLATE_REPO: ankr-affiliate-template
           APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
         run: npx tsx orchestrator/orchestrator.ts --run=${{ github.event.inputs.run_mode || 'all' }}

@@ -11,6 +11,7 @@
     "orchestrator": "tsx orchestrator/orchestrator.ts",
     "orchestrator:spawn": "tsx orchestrator/orchestrator.ts --run=spawn",
     "orchestrator:score": "tsx orchestrator/orchestrator.ts --run=score",
+    "orchestrator:research": "tsx orchestrator/orchestrator.ts --run=research",
     "orchestrator:recon": "tsx orchestrator/orchestrator.ts --run=recon",
     "db:migrate": "tsx src/lib/db/migrate.ts"
   },
@@ -20,6 +21,8 @@
     "daisyui": "^5.0.35",
     "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
+    "google-auth-library": "^10.6.2",
+    "googleapis": "^171.4.0",
     "kysely": "^0.28.14",
     "kysely-neon": "^2.0.2",
     "next": "^15.3.0",

@@ -97,6 +97,45 @@ async function migrate() {
     )
     .execute();
 
+  await db.schema
+    .createTable("niche_research")
+    .ifNotExists()
+    .addColumn("id", "uuid", (col) =>
+      col.primaryKey().defaultTo(sql`gen_random_uuid()`)
+    )
+    .addColumn("niche_name", "varchar(255)", (col) => col.notNull())
+    .addColumn("category", "varchar(100)", (col) => col.notNull())
+    .addColumn("consensus_score", "integer", (col) =>
+      col.notNull().defaultTo(0)
+    )
+    .addColumn("search_volume_avg", "integer")
+    .addColumn("avg_cpc", "integer")
+    .addColumn("competition_level", "varchar(20)")
+    .addColumn("trending_score", "integer")
+    .addColumn("reddit_buzz_score", "integer")
+    .addColumn("amazon_demand_score", "integer")
+    .addColumn("keyword_data", "jsonb")
+    .addColumn("amazon_data", "jsonb")
+    .addColumn("reddit_data", "jsonb")
+    .addColumn("trend_data", "jsonb")
+    .addColumn("claude_analysis", "jsonb")
+    .addColumn("top_keywords", "jsonb")
+    .addColumn("top_products", "jsonb")
+    .addColumn("sources_used", "jsonb")
+    .addColumn("site_id", "uuid", (col) =>
+      col.references("sites.id").onDelete("set null")
+    )
+    .addColumn("status", "varchar(20)", (col) =>
+      col.notNull().defaultTo("pending")
+    )
+    .addColumn("created_at", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`now()`)
+    )
+    .addColumn("updated_at", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`now()`)
+    )
+    .execute();
+
   // Indexes
   await db.schema
     .createIndex("idx_sites_status")
@@ -117,6 +156,27 @@ async function migrate() {
     .ifNotExists()
     .on("spawn_queue")
     .column("status")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_niche_research_category")
+    .ifNotExists()
+    .on("niche_research")
+    .column("category")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_niche_research_score")
+    .ifNotExists()
+    .on("niche_research")
+    .column("consensus_score")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_niche_research_site_id")
+    .ifNotExists()
+    .on("niche_research")
+    .column("site_id")
     .execute();
 
   console.log("Migrations complete.");

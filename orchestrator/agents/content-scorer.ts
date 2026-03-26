@@ -1,5 +1,6 @@
 import { askClaude } from "../lib/claude";
 import { log } from "../lib/utils";
+import { GSCCollector } from "../lib/collectors/gsc";
 
 interface ScorerConfig {
   anthropicApiKey: string;
@@ -166,7 +167,7 @@ Write a 2-3 sentence specific brief on exactly what should be changed to improve
   }
 
   private async fetchGSCData(
-    _domain: string
+    domain: string
   ): Promise<
     Array<{
       url: string;
@@ -176,13 +177,27 @@ Write a 2-3 sentence specific brief on exactly what should be changed to improve
       position: number;
     }> | null
   > {
-    // TODO: Implement actual GSC API integration
-    // This requires:
-    // 1. GSC_SERVICE_ACCOUNT_B64 env var (base64 encoded service account JSON)
-    // 2. google-auth-library + googleapis packages
-    // 3. The site property must be verified in GSC
-    //
-    // For now, return null to signal that GSC isn't configured yet
+    // Try OAuth-based GSC first (preferred)
+    if (process.env.GOOGLE_GSC_CLIENT_ID && process.env.GOOGLE_GSC_REFRESH_TOKEN) {
+      try {
+        const gsc = new GSCCollector();
+        const siteUrl = `sc-domain:${domain}`;
+        const data = await gsc.getPagePerformance(siteUrl, 28);
+        if (data.length > 0) return data;
+
+        // Try with https:// prefix if sc-domain didn't work
+        const httpsData = await gsc.getPagePerformance(`https://${domain}/`, 28);
+        if (httpsData.length > 0) return httpsData;
+
+        log.warn(`GSC returned no data for ${domain} — site may not be verified`);
+        return null;
+      } catch (err) {
+        log.warn(`GSC OAuth failed for ${domain}: ${err}`);
+        return null;
+      }
+    }
+
+    log.warn("GSC credentials not configured — set GOOGLE_GSC_CLIENT_ID and GOOGLE_GSC_REFRESH_TOKEN");
     return null;
   }
 }

@@ -74,6 +74,37 @@ export interface SpawnQueueTable {
 export type SpawnQueueItem = Selectable<SpawnQueueTable>;
 export type NewSpawnQueueItem = Insertable<SpawnQueueTable>;
 
+// ── Niche Research ───────────────────────────────────────────────────────────
+
+export interface NicheResearchTable {
+  id: Generated<string>;
+  niche_name: string;
+  category: string;
+  consensus_score: number;
+  search_volume_avg: number | null;
+  avg_cpc: number | null; // stored in cents
+  competition_level: string | null;
+  trending_score: number | null;
+  reddit_buzz_score: number | null;
+  amazon_demand_score: number | null;
+  keyword_data: unknown; // jsonb — raw keyword planner results
+  amazon_data: unknown; // jsonb — bestseller/trending product data
+  reddit_data: unknown; // jsonb — Reddit thread/mention data
+  trend_data: unknown; // jsonb — trend analysis data
+  claude_analysis: unknown; // jsonb — Claude's synthesis and reasoning
+  top_keywords: string[]; // jsonb — best keyword opportunities
+  top_products: unknown; // jsonb — best product opportunities
+  sources_used: string[]; // jsonb — which data sources contributed
+  site_id: string | null;
+  status: "pending" | "complete" | "stale";
+  created_at: ColumnType<Date, string | undefined, string>;
+  updated_at: ColumnType<Date, string | undefined, string>;
+}
+
+export type NicheResearch = Selectable<NicheResearchTable>;
+export type NewNicheResearch = Insertable<NicheResearchTable>;
+export type NicheResearchUpdate = Updateable<NicheResearchTable>;
+
 // ── Database ─────────────────────────────────────────────────────────────────
 
 export interface Database {
@@ -81,4 +112,5 @@ export interface Database {
   scoring_reports: ScoringReportsTable;
   recon_digests: ReconDigestsTable;
   spawn_queue: SpawnQueueTable;
+  niche_research: NicheResearchTable;
 }

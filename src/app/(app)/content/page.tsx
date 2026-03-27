@@ -16,6 +16,7 @@ import {
   RiBarChartLine,
 } from "react-icons/ri";
 import { generateFromResearch, generateFromScoring } from "./actions";
+import { ActivityFeed } from "@/components/ActivityFeed";
 
 async function getContentData(status?: string) {
   try {
@@ -150,6 +151,7 @@ export default async function ContentPage({
 
   return (
     <div className="space-y-6">
+      <ActivityFeed agent="write,publish" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

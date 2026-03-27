@@ -23,7 +23,7 @@ import { NicheResearchAgent } from "./agents/niche-research";
 import { ReconAgent } from "./agents/recon-agent";
 import { ContentWriter } from "./agents/content-writer";
 import { Publisher } from "./lib/publisher";
-import { log } from "./lib/utils";
+import { RemoteLogger } from "./lib/remote-logger";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -64,6 +64,13 @@ async function main() {
   const runFlag =
     args.find((a) => a.startsWith("--run="))?.split("=")[1] ?? "all";
 
+  const runId = `${runFlag}-${new Date().toISOString()}`;
+  const log = new RemoteLogger({
+    appBaseUrl: CONFIG.appBaseUrl,
+    runId,
+    agent: "orchestrator",
+  });
+
   log.header(`Orchestrator — ${runFlag.toUpperCase()}`);
   log.info(`Time: ${new Date().toISOString()}`);
 
@@ -101,7 +108,7 @@ async function main() {
     // ── SPAWN ─────────────────────────────────────────────────────────────
     if (runFlag === "all" || runFlag === "spawn") {
       log.section("Spawn Agent");
-      const spawner = new SiteSpawner(CONFIG);
+      const spawner = new SiteSpawner({ ...CONFIG, logger: log.child("spawn") });
 
       // Fetch queued items from API
       let queue: Array<{
@@ -141,7 +148,7 @@ async function main() {
     // ── SCORE ─────────────────────────────────────────────────────────────
     if (runFlag === "all" || runFlag === "score") {
       log.section("Content Scorer");
-      const scorer = new ContentScorer(CONFIG);
+      const scorer = new ContentScorer({ ...CONFIG, logger: log.child("score") });
       const activeSites = sites.filter((s) => s.status === "active");
       const batch = activeSites.slice(0, CONFIG.scoringBatchSize);
 
@@ -173,7 +180,7 @@ async function main() {
     // ── RESEARCH ──────────────────────────────────────────────────────────
     if (runFlag === "all" || runFlag === "research") {
       log.section("Niche Research Agent");
-      const researcher = new NicheResearchAgent(CONFIG);
+      const researcher = new NicheResearchAgent({ ...CONFIG, logger: log.child("research") });
       const opportunities = await researcher.run();
       results.research = opportunities;
     }
@@ -181,14 +188,14 @@ async function main() {
     // ── RECON ─────────────────────────────────────────────────────────────
     if (runFlag === "all" || runFlag === "recon") {
       log.section("Recon Agent");
-      const recon = new ReconAgent(CONFIG);
+      const recon = new ReconAgent({ ...CONFIG, logger: log.child("recon") });
       results.recon = await recon.run();
     }
 
     // ── WRITE ──────────────────────────────────────────────────────────────
     if (runFlag === "all" || runFlag === "write" || runFlag === "pipeline") {
       log.section("Content Writer");
-      const writer = new ContentWriter(CONFIG);
+      const writer = new ContentWriter({ ...CONFIG, logger: log.child("write") });
 
       // Fetch queued content jobs from API
       let jobs: Array<{
@@ -253,7 +260,7 @@ async function main() {
         }
 
         // Auto-publish successfully generated articles
-        const publisher = new Publisher(CONFIG);
+        const publisher = new Publisher({ ...CONFIG, logger: log.child("publish") });
         const toPublish = genResults.filter((r) => r.success);
 
         for (const gen of toPublish) {
@@ -297,6 +304,8 @@ async function main() {
   if (results.errors.length > 0) {
     log.error(`Errors: ${results.errors.join(", ")}`);
   }
+
+  await log.shutdown();
 }
 
 main().catch((err) => {

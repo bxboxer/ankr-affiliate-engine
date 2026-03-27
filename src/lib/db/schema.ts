@@ -132,6 +132,21 @@ export type ContentJob = Selectable<ContentJobsTable>;
 export type NewContentJob = Insertable<ContentJobsTable>;
 export type ContentJobUpdate = Updateable<ContentJobsTable>;
 
+// ── Activity Log ─────────────────────────────────────────────────────────────
+
+export interface ActivityLogTable {
+  id: Generated<string>;
+  run_id: string;
+  agent: string;
+  level: "info" | "warn" | "error" | "header" | "section";
+  message: string;
+  meta: unknown; // jsonb
+  created_at: ColumnType<Date, string | undefined, string>;
+}
+
+export type ActivityLogEntry = Selectable<ActivityLogTable>;
+export type NewActivityLogEntry = Insertable<ActivityLogTable>;
+
 // ── Database ─────────────────────────────────────────────────────────────────
 
 export interface Database {
@@ -141,4 +156,5 @@ export interface Database {
   spawn_queue: SpawnQueueTable;
   niche_research: NicheResearchTable;
   content_jobs: ContentJobsTable;
+  activity_log: ActivityLogTable;
 }

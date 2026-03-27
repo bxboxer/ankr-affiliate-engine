@@ -1,10 +1,12 @@
 import { GitHubClient } from "./github";
-import { log } from "./utils";
+import type { Logger } from "./utils";
+import { log as defaultLog } from "./utils";
 
 interface PublisherConfig {
   githubOwner: string;
   githubToken: string;
   appBaseUrl: string;
+  logger?: Logger;
 }
 
 interface PublishResult {
@@ -17,9 +19,11 @@ interface PublishResult {
 export class Publisher {
   private github: GitHubClient;
   private config: PublisherConfig;
+  private log: Logger;
 
   constructor(config: PublisherConfig) {
     this.config = config;
+    this.log = config.logger ?? defaultLog;
     this.github = new GitHubClient(config.githubToken, config.githubOwner);
   }
 
@@ -34,7 +38,7 @@ export class Publisher {
       // Detect the content directory structure in the repo
       const contentPath = await this.detectContentPath(repoName, slug);
 
-      log.info(`Publishing to ${repoName}/${contentPath}`);
+      this.log.info(`Publishing to ${repoName}/${contentPath}`);
 
       // Commit the file via GitHub API
       const result = await this.github.createOrUpdateFile(
@@ -47,7 +51,7 @@ export class Publisher {
       const commitSha = result?.content?.sha ?? result?.commit?.sha ?? null;
       const publishedUrl = `https://${domain}/${slug}`;
 
-      log.info(
+      this.log.info(
         `Published: ${publishedUrl} (commit: ${commitSha?.slice(0, 7) ?? "unknown"})`
       );
 
@@ -58,7 +62,7 @@ export class Publisher {
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      log.error(`Publish failed for ${slug} in ${repoName}: ${msg}`);
+      this.log.error(`Publish failed for ${slug} in ${repoName}: ${msg}`);
       return {
         success: false,
         error: msg,
@@ -118,7 +122,7 @@ export class Publisher {
         body: JSON.stringify(data),
       });
     } catch (err) {
-      log.warn(`Failed to update job ${jobId} after publish: ${err}`);
+      this.log.warn(`Failed to update job ${jobId} after publish: ${err}`);
     }
   }
 }

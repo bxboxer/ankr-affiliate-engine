@@ -1,7 +1,8 @@
 import { GitHubClient } from "../lib/github";
 import { VercelClient } from "../lib/vercel";
 import { askClaude } from "../lib/claude";
-import { log } from "../lib/utils";
+import type { Logger } from "../lib/utils";
+import { log as defaultLog } from "../lib/utils";
 
 interface SpawnConfig {
   githubOwner: string;
@@ -9,6 +10,7 @@ interface SpawnConfig {
   vercelToken: string;
   vercelTeamId?: string;
   templateRepo: string;
+  logger?: Logger;
 }
 
 interface SpawnRequest {
@@ -26,9 +28,11 @@ export class SiteSpawner {
   private github: GitHubClient;
   private vercel: VercelClient;
   private config: SpawnConfig;
+  private log: Logger;
 
   constructor(config: SpawnConfig) {
     this.config = config;
+    this.log = config.logger ?? defaultLog;
     this.github = new GitHubClient(config.githubToken, config.githubOwner);
     this.vercel = new VercelClient(config.vercelToken, config.vercelTeamId);
   }
@@ -40,7 +44,7 @@ export class SiteSpawner {
 
     try {
       // 1. Clone template repo
-      log.info(`Creating repo: ${this.config.githubOwner}/${repoName}`);
+      this.log.info(`Creating repo: ${this.config.githubOwner}/${repoName}`);
       await this.github.createRepoFromTemplate(
         this.config.templateRepo,
         repoName,
@@ -51,7 +55,7 @@ export class SiteSpawner {
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       // 2. Generate site-specific CLAUDE.md using AI
-      log.info("Generating CLAUDE.md...");
+      this.log.info("Generating CLAUDE.md...");
       const claudeMd = await this.generateClaudeMd(request);
       await this.github.createOrUpdateFile(
         repoName,
@@ -61,7 +65,7 @@ export class SiteSpawner {
       );
 
       // 3. Create Vercel project
-      log.info("Creating Vercel project...");
+      this.log.info("Creating Vercel project...");
       const project = await this.vercel.createProject(repoName, {
         owner: this.config.githubOwner,
         repo: repoName,
@@ -69,11 +73,11 @@ export class SiteSpawner {
 
       // 4. Add custom domain
       if (request.domain) {
-        log.info(`Adding domain: ${request.domain}`);
+        this.log.info(`Adding domain: ${request.domain}`);
         try {
           await this.vercel.addDomain(project.id, request.domain);
         } catch (err) {
-          log.warn(`Domain add failed (configure DNS manually): ${err}`);
+          this.log.warn(`Domain add failed (configure DNS manually): ${err}`);
         }
       }
 
@@ -85,7 +89,7 @@ export class SiteSpawner {
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      log.error(`Spawn failed for ${request.name}: ${msg}`);
+      this.log.error(`Spawn failed for ${request.name}: ${msg}`);
       return { name: request.name, success: false, error: msg };
     }
   }

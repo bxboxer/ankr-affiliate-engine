@@ -11,6 +11,7 @@ import {
   RiAddCircleLine,
   RiFileTextLine,
 } from "react-icons/ri";
+import { ActivityFeed } from "@/components/ActivityFeed";
 
 async function getStats() {
   try {
@@ -204,13 +205,20 @@ export default async function DashboardPage() {
               />
               <div className="divider my-1" />
               <p className="text-xs text-base-content/50">
-                Orchestrator runs automatically via GitHub Actions every Monday
-                at 6 AM UTC, or trigger manually from Settings.
+                Orchestrator runs via GitHub Actions every Monday at 6 AM UTC,
+                or trigger manually from{" "}
+                <Link href="/settings" className="link link-primary">
+                  Settings
+                </Link>
+                .
               </p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Activity Feed */}
+      <ActivityFeed limit={15} />
     </div>
   );
 }

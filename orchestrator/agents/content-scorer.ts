@@ -1,11 +1,13 @@
 import { askClaude } from "../lib/claude";
-import { log } from "../lib/utils";
+import type { Logger } from "../lib/utils";
+import { log as defaultLog } from "../lib/utils";
 import { GSCCollector } from "../lib/collectors/gsc";
 
 interface ScorerConfig {
   anthropicApiKey: string;
   maxBriefsPerRun: number;
   appBaseUrl: string;
+  logger?: Logger;
 }
 
 interface SiteRef {
@@ -40,9 +42,11 @@ interface ScoringReport {
 
 export class ContentScorer {
   private config: ScorerConfig;
+  private log: Logger;
 
   constructor(config: ScorerConfig) {
     this.config = config;
+    this.log = config.logger ?? defaultLog;
   }
 
   async scoreSite(site: SiteRef): Promise<ScoringReport> {
@@ -50,14 +54,14 @@ export class ContentScorer {
     // For now, we'll use the dashboard API to check for manually uploaded data,
     // or return an empty report that prompts GSC setup.
 
-    log.info(`Scoring ${site.name} (${site.domain})`);
+    this.log.info(`Scoring ${site.name} (${site.domain})`);
 
     // TODO: Integrate GSC API here when GSC_SERVICE_ACCOUNT_B64 is configured
     // For now, generate a placeholder report that signals GSC needs setup
     const gscData = await this.fetchGSCData(site.domain);
 
     if (!gscData || gscData.length === 0) {
-      log.warn(
+      this.log.warn(
         `No GSC data for ${site.domain} — configure GSC service account`
       );
       return {
@@ -87,7 +91,7 @@ export class ContentScorer {
       try {
         page.brief = await this.generateBrief(site, page);
       } catch (err) {
-        log.warn(`Brief generation failed for ${page.url}: ${err}`);
+        this.log.warn(`Brief generation failed for ${page.url}: ${err}`);
       }
     }
 
@@ -105,7 +109,7 @@ export class ContentScorer {
       },
     };
 
-    log.info(
+    this.log.info(
       `${site.name}: ${report.total_pages} pages — ` +
         `${report.pages_to_prune} prune, ${report.pages_to_update} update, ` +
         `${report.pages_to_expand} expand, ${report.pages_to_rewrite_meta} rewrite meta`
@@ -189,15 +193,15 @@ Write a 2-3 sentence specific brief on exactly what should be changed to improve
         const httpsData = await gsc.getPagePerformance(`https://${domain}/`, 28);
         if (httpsData.length > 0) return httpsData;
 
-        log.warn(`GSC returned no data for ${domain} — site may not be verified`);
+        this.log.warn(`GSC returned no data for ${domain} — site may not be verified`);
         return null;
       } catch (err) {
-        log.warn(`GSC OAuth failed for ${domain}: ${err}`);
+        this.log.warn(`GSC OAuth failed for ${domain}: ${err}`);
         return null;
       }
     }
 
-    log.warn("GSC credentials not configured — set GOOGLE_GSC_CLIENT_ID and GOOGLE_GSC_REFRESH_TOKEN");
+    this.log.warn("GSC credentials not configured — set GOOGLE_GSC_CLIENT_ID and GOOGLE_GSC_REFRESH_TOKEN");
     return null;
   }
 }

@@ -1,5 +1,6 @@
 import { askClaude } from "../lib/claude";
-import { log } from "../lib/utils";
+import type { Logger } from "../lib/utils";
+import { log as defaultLog } from "../lib/utils";
 import { KeywordPlannerCollector, type KeywordIdea } from "../lib/collectors/keyword-planner";
 import { AmazonBestSellersCollector, type AmazonProduct } from "../lib/collectors/amazon-bestsellers";
 import { RedditCollector, type RedditPost } from "../lib/collectors/reddit";
@@ -10,6 +11,7 @@ interface NicheResearchConfig {
   appBaseUrl: string;
   seedNiches: string[];
   siteId?: string;
+  logger?: Logger;
 }
 
 interface NicheOpportunity {
@@ -36,13 +38,15 @@ interface NicheOpportunity {
 
 export class NicheResearchAgent {
   private config: NicheResearchConfig;
+  private log: Logger;
 
   constructor(config: NicheResearchConfig) {
     this.config = config;
+    this.log = config.logger ?? defaultLog;
   }
 
   async run(): Promise<NicheOpportunity[]> {
-    log.info(`Starting niche research for ${this.config.seedNiches.length} seed niches...`);
+    this.log.info(`Starting niche research for ${this.config.seedNiches.length} seed niches...`);
 
     // Phase 1: Gather data from all sources in parallel
     const [keywordResult, amazonResult, redditResult, trendResult] =
@@ -69,7 +73,7 @@ export class NicheResearchAgent {
     if (trendData.trends.length > 0 || Object.keys(trendData.suggestions).length > 0)
       sourcesUsed.push("google-trends");
 
-    log.info(`Data gathered from ${sourcesUsed.length} sources: ${sourcesUsed.join(", ")}`);
+    this.log.info(`Data gathered from ${sourcesUsed.length} sources: ${sourcesUsed.join(", ")}`);
 
     // Phase 2: Build context and synthesize with Claude
     const context = this.buildContext(keywordData, amazonData, redditData, trendData);
@@ -86,16 +90,16 @@ export class NicheResearchAgent {
         });
         if (res.ok) pushed++;
       } catch {
-        log.warn(`Failed to push: ${opp.niche_name}`);
+        this.log.warn(`Failed to push: ${opp.niche_name}`);
       }
     }
 
-    log.info(`Research complete: ${opportunities.length} niches scored, ${pushed} pushed to dashboard`);
+    this.log.info(`Research complete: ${opportunities.length} niches scored, ${pushed} pushed to dashboard`);
     return opportunities;
   }
 
   private async gatherKeywordData(): Promise<Record<string, KeywordIdea[]>> {
-    log.info("Gathering keyword data...");
+    this.log.info("Gathering keyword data...");
     const collector = new KeywordPlannerCollector();
     const results: Record<string, KeywordIdea[]> = {};
 
@@ -112,7 +116,7 @@ export class NicheResearchAgent {
   }
 
   private async gatherAmazonData(): Promise<Record<string, AmazonProduct[]>> {
-    log.info("Gathering Amazon bestseller data...");
+    this.log.info("Gathering Amazon bestseller data...");
     const collector = new AmazonBestSellersCollector();
 
     // Map seed niches to Amazon categories
@@ -135,7 +139,7 @@ export class NicheResearchAgent {
   }
 
   private async gatherRedditData(): Promise<RedditPost[]> {
-    log.info("Gathering Reddit data...");
+    this.log.info("Gathering Reddit data...");
     const collector = new RedditCollector();
     return collector.getAllPosts();
   }
@@ -144,7 +148,7 @@ export class NicheResearchAgent {
     trends: TrendingTopic[];
     suggestions: Record<string, string[]>;
   }> {
-    log.info("Gathering trend data...");
+    this.log.info("Gathering trend data...");
     const collector = new TrendsCollector();
 
     const [trends, suggestions] = await Promise.allSettled([
@@ -318,7 +322,7 @@ Rules:
         status: "complete" as const,
       }));
     } catch {
-      log.error("Failed to parse Claude synthesis response");
+      this.log.error("Failed to parse Claude synthesis response");
       return [];
     }
   }

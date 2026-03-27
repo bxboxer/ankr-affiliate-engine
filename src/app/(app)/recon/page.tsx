@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { triggerRecon } from "./actions";
 import { TriggerToast } from "@/components/TriggerToast";
+import { ActivityFeed } from "@/components/ActivityFeed";
 
 async function getDigests() {
   try {
@@ -26,6 +27,7 @@ export default async function ReconPage() {
       <Suspense>
         <TriggerToast />
       </Suspense>
+      <ActivityFeed agent="recon" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Recon Intelligence</h1>

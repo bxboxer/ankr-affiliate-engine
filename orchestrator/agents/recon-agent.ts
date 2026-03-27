@@ -1,10 +1,12 @@
 import { askClaude } from "../lib/claude";
-import { log } from "../lib/utils";
+import type { Logger } from "../lib/utils";
+import { log as defaultLog } from "../lib/utils";
 
 interface ReconConfig {
   anthropicApiKey: string;
   reconSources: string[];
   appBaseUrl: string;
+  logger?: Logger;
 }
 
 interface ReconDigest {
@@ -25,13 +27,15 @@ interface ReconDigest {
 
 export class ReconAgent {
   private config: ReconConfig;
+  private log: Logger;
 
   constructor(config: ReconConfig) {
     this.config = config;
+    this.log = config.logger ?? defaultLog;
   }
 
   async run(): Promise<ReconDigest> {
-    log.info(`Checking ${this.config.reconSources.length} sources...`);
+    this.log.info(`Checking ${this.config.reconSources.length} sources...`);
 
     // Fetch content from each source
     const sourceContents: Array<{ source: string; content: string }> = [];
@@ -41,15 +45,15 @@ export class ReconAgent {
         const content = await this.fetchSource(source);
         if (content) {
           sourceContents.push({ source, content });
-          log.info(`Fetched: ${source}`);
+          this.log.info(`Fetched: ${source}`);
         }
       } catch (err) {
-        log.warn(`Failed to fetch ${source}: ${err}`);
+        this.log.warn(`Failed to fetch ${source}: ${err}`);
       }
     }
 
     if (sourceContents.length === 0) {
-      log.warn("No sources fetched — returning empty digest");
+      this.log.warn("No sources fetched — returning empty digest");
       return {
         summary: "No sources could be reached this run.",
         signals: [],
@@ -77,10 +81,10 @@ export class ReconAgent {
         }),
       });
     } catch {
-      log.warn("Failed to push digest to dashboard");
+      this.log.warn("Failed to push digest to dashboard");
     }
 
-    log.info(
+    this.log.info(
       `Digest: ${digest.signals.length} signals, ${digest.opportunities.length} opportunities`
     );
 
@@ -168,7 +172,7 @@ Return ONLY the JSON object, no markdown fencing.`;
         generatedAt: new Date().toISOString(),
       };
     } catch {
-      log.error("Failed to parse Claude response as JSON");
+      this.log.error("Failed to parse Claude response as JSON");
       return {
         summary: response.slice(0, 500),
         signals: [],

@@ -13,6 +13,7 @@ import {
 } from "react-icons/ri";
 import { triggerResearch } from "./actions";
 import { TriggerToast } from "@/components/TriggerToast";
+import { ActivityFeed } from "@/components/ActivityFeed";
 
 async function getResearchData() {
   try {
@@ -79,6 +80,7 @@ export default async function ResearchPage() {
       <Suspense>
         <TriggerToast />
       </Suspense>
+      <ActivityFeed agent="research" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Niche Research</h1>

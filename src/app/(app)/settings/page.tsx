@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ActivityFeed } from "@/components/ActivityFeed";
 
 export default function SettingsPage() {
   const [triggerResult, setTriggerResult] = useState<string | null>(null);
@@ -68,6 +69,9 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Activity Feed — All Agents */}
+      <ActivityFeed />
 
       {/* Environment Status */}
       <div className="card bg-base-100">

@@ -1,5 +1,6 @@
 import { askClaude } from "../lib/claude";
-import { log } from "../lib/utils";
+import type { Logger } from "../lib/utils";
+import { log as defaultLog } from "../lib/utils";
 import { GitHubClient } from "../lib/github";
 
 interface WriterConfig {
@@ -8,6 +9,7 @@ interface WriterConfig {
   githubToken: string;
   appBaseUrl: string;
   maxJobsPerRun: number;
+  logger?: Logger;
 }
 
 interface SiteRef {
@@ -69,9 +71,11 @@ Output ONLY the article content with frontmatter. No explanations or meta-commen
 export class ContentWriter {
   private config: WriterConfig;
   private github: GitHubClient;
+  private log: Logger;
 
   constructor(config: WriterConfig) {
     this.config = config;
+    this.log = config.logger ?? defaultLog;
     this.github = new GitHubClient(config.githubToken, config.githubOwner);
   }
 
@@ -80,7 +84,7 @@ export class ContentWriter {
     sites: SiteRef[]
   ): Promise<GenerationResult[]> {
     const batch = jobs.slice(0, this.config.maxJobsPerRun);
-    log.info(
+    this.log.info(
       `Processing ${batch.length} content jobs (${jobs.length} total queued)`
     );
 
@@ -89,7 +93,7 @@ export class ContentWriter {
     for (const job of batch) {
       const site = sites.find((s) => s.id === job.site_id);
       if (!site) {
-        log.warn(`Site ${job.site_id} not found for job ${job.id} — skipping`);
+        this.log.warn(`Site ${job.site_id} not found for job ${job.id} — skipping`);
         results.push({
           jobId: job.id,
           content: "",
@@ -104,7 +108,7 @@ export class ContentWriter {
         // Update job status to generating
         await this.updateJobStatus(job.id, "generating");
 
-        log.info(
+        this.log.info(
           `Generating: "${job.title}" (${job.job_type}) for ${site.name}`
         );
 
@@ -117,7 +121,7 @@ export class ContentWriter {
           .split(/\s+/)
           .filter((w) => w.length > 0).length;
 
-        log.info(`Generated ${wordCount} words for "${job.title}"`);
+        this.log.info(`Generated ${wordCount} words for "${job.title}"`);
 
         // Update job with generated content (status: review)
         await this.updateJob(job.id, {
@@ -134,7 +138,7 @@ export class ContentWriter {
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        log.error(`Failed to generate "${job.title}": ${msg}`);
+        this.log.error(`Failed to generate "${job.title}": ${msg}`);
 
         await this.updateJob(job.id, {
           status: "failed",
@@ -283,7 +287,7 @@ REQUIREMENTS:
       const response = await this.github.getFileContent(repoName, "CLAUDE.md");
       return response;
     } catch {
-      log.info(`No CLAUDE.md found for ${repoName} — using defaults`);
+      this.log.info(`No CLAUDE.md found for ${repoName} — using defaults`);
       return null;
     }
   }

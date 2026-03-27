@@ -237,6 +237,46 @@ async function migrate() {
     .column("source")
     .execute();
 
+  // ── Activity Log ──────────────────────────────────────────────────────────
+  await db.schema
+    .createTable("activity_log")
+    .ifNotExists()
+    .addColumn("id", "uuid", (col) =>
+      col.primaryKey().defaultTo(sql`gen_random_uuid()`)
+    )
+    .addColumn("run_id", "varchar(200)", (col) => col.notNull())
+    .addColumn("agent", "varchar(50)", (col) => col.notNull())
+    .addColumn("level", "varchar(20)", (col) =>
+      col.notNull().defaultTo("info")
+    )
+    .addColumn("message", "text", (col) => col.notNull())
+    .addColumn("meta", "jsonb")
+    .addColumn("created_at", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`now()`)
+    )
+    .execute();
+
+  await db.schema
+    .createIndex("idx_activity_log_agent")
+    .ifNotExists()
+    .on("activity_log")
+    .column("agent")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_activity_log_run_id")
+    .ifNotExists()
+    .on("activity_log")
+    .column("run_id")
+    .execute();
+
+  await db.schema
+    .createIndex("idx_activity_log_created")
+    .ifNotExists()
+    .on("activity_log")
+    .column("created_at")
+    .execute();
+
   console.log("Migrations complete.");
   process.exit(0);
 }

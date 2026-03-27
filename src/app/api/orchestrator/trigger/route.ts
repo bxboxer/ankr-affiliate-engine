@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { triggerOrchestrator } from "@/lib/trigger-orchestrator";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,45 +16,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Trigger GitHub Actions workflow dispatch
-    const githubToken = process.env.GITHUB_TOKEN;
-    const owner = process.env.GITHUB_OWNER ?? "bxboxer";
-    const repo = "ankr-affiliate-engine";
+    const result = await triggerOrchestrator(run);
 
-    if (!githubToken) {
-      return NextResponse.json(
-        { error: "GITHUB_TOKEN not configured" },
-        { status: 500 }
-      );
-    }
-
-    const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/orchestrator.yml/dispatches`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${githubToken}`,
-          Accept: "application/vnd.github.v3+json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ref: "main",
-          inputs: { run_mode: run },
-        }),
-      }
-    );
-
-    if (res.status === 204) {
+    if (result.ok) {
       return NextResponse.json({
         success: true,
         message: `Orchestrator triggered with run=${run}`,
       });
     }
 
-    const errorText = await res.text();
     return NextResponse.json(
-      { error: "GitHub Actions trigger failed", detail: errorText },
-      { status: res.status }
+      { error: "GitHub Actions trigger failed", detail: result.error },
+      { status: 500 }
     );
   } catch (error) {
     return NextResponse.json(
